@@ -1,0 +1,6 @@
+{
+  "name": "Farnect",
+  "description": "A word association game inspired by NYT's Connections, where you find groups of four words that share something in common. A new puzzle is generated for each game.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

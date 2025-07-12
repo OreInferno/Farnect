@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Farnect</title>
+    
+    <!-- Farcaster & Open Graph Meta Tags -->
+    <meta property="og:title" content="Farnect - A Word Connections Game" />
+    <meta property="og:description" content="Create four groups of four! A new puzzle every day." />
+    <!-- TODO: Replace with a URL to a 1.91:1 aspect ratio image of your game -->
+    <meta property="og:image" content="https://your-app-url.com/farnect-og.png" />
+    <meta property="fc:frame" content="vNext" />
+    <!-- TODO: Replace with a URL to a 1.91:1 aspect ratio image for the frame -->
+    <meta property="fc:frame:image" content="https://your-app-url.com/farnect-frame.png" />
+    <meta property="fc:frame:button:1" content="Play Farnect" />
+    <meta property="fc:frame:button:1:action" content="link" />
+    <!-- TODO: Replace this with the final URL where you host this app! -->
+    <meta property="fc:frame:button:1:target" content="https://your-app-url.com" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.8.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.50.4",
+    "@tanstack/react-query": "https://esm.sh/@tanstack/react-query@^5.82.0",
+    "wagmi": "https://esm.sh/wagmi@^2.15.6",
+    "wagmi/": "https://esm.sh/wagmi@^2.15.6/",
+    "viem": "https://esm.sh/viem@^2.31.7",
+    "@tanstack/query-core": "https://esm.sh/@tanstack/query-core@^5.82.0",
+    "viem/": "https://esm.sh/viem@^2.31.7/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-900 text-white">
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
