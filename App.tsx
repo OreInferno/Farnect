@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient } from '@tanstack/query-core';
@@ -8,6 +6,7 @@ import { config } from './wagmi-config.ts';
 import LandingPage from './components/Landing.tsx';
 import { GameContainer } from './components/GameContainer.tsx';
 import Leaderboard from './components/Leaderboard.tsx';
+import HowToPlayModal from './components/HowToPlayModal.tsx';
 import './index.css';
 
 const queryClient = new QueryClient();
@@ -25,8 +24,18 @@ const AppContent: React.FC = () => {
   const [streak, setStreak] = useState(0);
   const [showStreakAnimation, setShowStreakAnimation] = useState(false);
   const [practiceKey, setPracticeKey] = useState(1);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   useEffect(() => {
+    // Check if it's the user's first time visiting
+    try {
+        const hasVisited = localStorage.getItem('farnect_hasVisited');
+        if (!hasVisited) {
+            setShowHowToPlay(true);
+            localStorage.setItem('farnect_hasVisited', 'true');
+        }
+    } catch(e) { console.error("Could not access localStorage for first visit check", e); }
+    
     setUser(MOCK_USER);
 
     try {
@@ -68,6 +77,7 @@ const AppContent: React.FC = () => {
   }, [streak]);
   
   const handleGoHome = () => setView('landing');
+  const handleToggleHowToPlay = () => setShowHowToPlay(s => !s);
 
   const handlePracticeAgain = () => {
       setPracticeKey(key => key + 1);
@@ -86,25 +96,25 @@ const AppContent: React.FC = () => {
                     key="daily"
                     mode="daily" 
                     user={user} 
-                    streak={streak}
                     onGoHome={handleGoHome} 
                     onDailyWin={handleDailyWin}
                     onPracticeAgain={handlePracticeAgain} // Prop not used in daily mode but required
                     onViewLeaderboard={() => setView('leaderboard')}
+                    onHowToPlay={handleToggleHowToPlay}
                 />;
       case 'practice':
         return <GameContainer 
                     key={practiceKey}
                     mode="practice" 
                     user={user}
-                    streak={streak}
                     onGoHome={handleGoHome}
                     onDailyWin={() => {}} // No streak for practice
                     onPracticeAgain={handlePracticeAgain}
                     onViewLeaderboard={() => {}} // No leaderboard from practice result
+                    onHowToPlay={handleToggleHowToPlay}
                 />;
       case 'leaderboard':
-        return <Leaderboard onGoHome={handleGoHome} />;
+        return <Leaderboard onGoHome={handleGoHome} onHowToPlay={handleToggleHowToPlay} />;
       case 'landing':
       default:
         return <LandingPage 
@@ -114,12 +124,14 @@ const AppContent: React.FC = () => {
                     onSignIn={() => setUser(MOCK_USER)}
                     streak={streak}
                     showStreakAnimation={showStreakAnimation}
+                    onHowToPlay={handleToggleHowToPlay}
                 />;
     }
   };
 
   return (
     <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col">
+      {showHowToPlay && <HowToPlayModal onClose={handleToggleHowToPlay} />}
       {renderView()}
     </div>
   );

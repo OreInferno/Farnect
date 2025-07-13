@@ -8,28 +8,27 @@ import GuessedGroupRow from './GuessedGroupRow.tsx';
 import WordGrid from './WordGrid.tsx';
 import Controls from './Controls.tsx';
 import ResultModal from './ResultModal.tsx';
-import HintPurchaseModal from './HintPurchaseModal.tsx';
-import HintOptionsPopover from './HintOptionsPopover.tsx';
+import GetHintsModal from './HintPurchaseModal.tsx';
 import { LoadingSpinner, ErrorDisplay } from './common.tsx';
 
 type GameMode = 'daily' | 'practice';
-type HintType = 'word' | 'category';
 
 interface GameContainerProps {
     mode: GameMode;
     user: { fid: number; username: string } | null;
-    streak: number;
     onGoHome: () => void;
     onDailyWin: () => void;
     onPracticeAgain: () => void;
     onViewLeaderboard: () => void;
+    onHowToPlay: () => void;
 }
 
 const shuffleArray = <T,>(array: T[]): T[] => [...array].sort(() => Math.random() - 0.5);
 const getTodayDateString = () => new Date().toISOString().split('T')[0];
 
-export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, streak, onGoHome, onDailyWin, onPracticeAgain, onViewLeaderboard }) => {
+export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, onGoHome, onDailyWin, onPracticeAgain, onViewLeaderboard, onHowToPlay }) => {
   const [gameState, setGameState] = useState<GameState>(GameState.LOADING);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [words, setWords] = useState<GameWord[]>([]);
   const [solution, setSolution] = useState<PuzzleData[]>([]);
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
@@ -46,8 +45,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, streak
   const [availableWordHints, setAvailableWordHints] = useState(0);
   const [availableCategoryHints, setAvailableCategoryHints] = useState(0);
   const [isGettingHint, setIsGettingHint] = useState<boolean>(false);
-  const [showHintPurchaseModal, setShowHintPurchaseModal] = useState(false);
-  const [showHintOptionsPopover, setShowHintOptionsPopover] = useState(false);
+  const [showGetHintsModal, setShowGetHintsModal] = useState(false);
 
   const guessedWordsSet = useMemo(() => new Set(guessedGroups.flatMap(g => g.words)), [guessedGroups]);
   const gameId = useMemo(() => (mode === 'daily' ? getTodayDateString() : Date.now().toString()), [mode]);
@@ -86,6 +84,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, streak
 
   const loadGame = useCallback(async () => {
     setGameState(GameState.LOADING);
+    setErrorMessage(undefined);
     setGuessedGroups([]);
     setSelectedWords([]);
     setMistakes(MAX_MISTAKES);
@@ -100,31 +99,36 @@ export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, streak
     if(mode === 'daily') {
         const storedStateRaw = localStorage.getItem(`farnect-${gameId}`);
         if(storedStateRaw) {
-            const storedState: StoredGameState = JSON.parse(storedStateRaw);
-             if (storedState.gameState === GameState.WON || storedState.gameState === GameState.LOST) {
-                setGameState(storedState.gameState);
-                setSolution(storedState.solution);
-                setMistakes(storedState.mistakes);
-                setGuessedGroups(storedState.guessedGroups);
-                setStartTime(storedState.startTime);
-                setEndTime(storedState.endTime);
-                setHintWords(storedState.hintWords || []);
-                setHintCategories(storedState.hintCategories || []);
-                setAvailableWordHints(storedState.availableWordHints || 0);
-                setAvailableCategoryHints(storedState.availableCategoryHints || 0);
-                return;
-            } else if (storedState.words?.length > 0) {
-                setSolution(storedState.solution);
-                setWords(storedState.words);
-                setGuessedGroups(storedState.guessedGroups || []);
-                setMistakes(storedState.mistakes);
-                setStartTime(storedState.startTime || Date.now());
-                setHintWords(storedState.hintWords || []);
-                setHintCategories(storedState.hintCategories || []);
-                setAvailableWordHints(storedState.availableWordHints || 0);
-                setAvailableCategoryHints(storedState.availableCategoryHints || 0);
-                setGameState(GameState.PLAYING);
-                return;
+            try {
+                const storedState: StoredGameState = JSON.parse(storedStateRaw);
+                 if (storedState.gameState === GameState.WON || storedState.gameState === GameState.LOST) {
+                    setGameState(storedState.gameState);
+                    setSolution(storedState.solution);
+                    setMistakes(storedState.mistakes);
+                    setGuessedGroups(storedState.guessedGroups);
+                    setStartTime(storedState.startTime);
+                    setEndTime(storedState.endTime);
+                    setHintWords(storedState.hintWords || []);
+                    setHintCategories(storedState.hintCategories || []);
+                    setAvailableWordHints(storedState.availableWordHints || 0);
+                    setAvailableCategoryHints(storedState.availableCategoryHints || 0);
+                    return;
+                } else if (storedState.words?.length > 0) {
+                    setSolution(storedState.solution);
+                    setWords(storedState.words);
+                    setGuessedGroups(storedState.guessedGroups || []);
+                    setMistakes(storedState.mistakes);
+                    setStartTime(storedState.startTime || Date.now());
+                    setHintWords(storedState.hintWords || []);
+                    setHintCategories(storedState.hintCategories || []);
+                    setAvailableWordHints(storedState.availableWordHints || 0);
+                    setAvailableCategoryHints(storedState.availableCategoryHints || 0);
+                    setGameState(GameState.PLAYING);
+                    return;
+                }
+            } catch (e) {
+                console.error("Failed to parse stored game state, starting fresh.", e);
+                localStorage.removeItem(`farnect-${gameId}`);
             }
         }
     }
@@ -157,6 +161,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, streak
       }
     } catch (error) {
       console.error(error);
+      setErrorMessage((error as Error).message);
       setGameState(GameState.ERROR);
     }
   }, [mode, gameId, saveStateToStorage]);
@@ -184,48 +189,43 @@ export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, streak
     });
   }, [gameState, guessedWordsSet]);
 
-  const handleGetHint = useCallback(async (type: HintType) => {
+  const handleGetHint = useCallback(async () => {
     if (isGettingHint) return;
-    setShowHintOptionsPopover(false);
+    
+    const hasWordHint = availableWordHints > 0;
+    const hasCategoryHint = availableCategoryHints > 0;
+
+    if (!hasWordHint && !hasCategoryHint) {
+        setShowGetHintsModal(true);
+        return;
+    }
 
     const unsolvedGroups = solution
         .map((s, i) => ({...s, level: i}))
         .filter((_, i) => !guessedGroups.some(g => g.level === i));
 
-    if (unsolvedGroups.length === 0) return;
+    if (unsolvedGroups.length <= 1) return; // Don't give hints for the last group
 
-    if (type === 'word') {
-        if (availableWordHints === 0) {
-            setShowHintPurchaseModal(true);
-            return;
-        }
-        setIsGettingHint(true);
-        try {
+    setIsGettingHint(true);
+    try {
+        if (hasWordHint) {
             const hint = await getWordHint(unsolvedGroups);
             const newHintWords = [...hintWords, hint];
             const newAvailableHints = availableWordHints - 1;
             setHintWords(newHintWords);
             setAvailableWordHints(newAvailableHints);
             saveStateToStorage({ hintWords: newHintWords, availableWordHints: newAvailableHints });
-        } catch(e) { alert((e as Error).message); }
-        finally { setIsGettingHint(false); }
-
-    } else if (type === 'category') {
-        if (availableCategoryHints === 0) {
-            setShowHintPurchaseModal(true);
-            return;
-        }
-        setIsGettingHint(true);
-        try {
+        } else if (hasCategoryHint) {
             const hint = await getCategoryHint(unsolvedGroups);
             const newHintCategories = [...hintCategories, hint];
             const newAvailableHints = availableCategoryHints - 1;
             setHintCategories(newHintCategories);
             setAvailableCategoryHints(newAvailableHints);
             saveStateToStorage({ hintCategories: newHintCategories, availableCategoryHints: newAvailableHints });
-        } catch(e) { alert((e as Error).message); }
-        finally { setIsGettingHint(false); }
-    }
+        }
+    } catch(e) { alert((e as Error).message); }
+    finally { setIsGettingHint(false); }
+
   }, [isGettingHint, solution, hintWords, hintCategories, availableWordHints, availableCategoryHints, guessedGroups, saveStateToStorage]);
 
   const handlePurchaseSuccess = useCallback(() => {
@@ -234,7 +234,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, streak
     setAvailableWordHints(newAvailableWordHints);
     setAvailableCategoryHints(newAvailableCategoryHints);
     saveStateToStorage({ availableWordHints: newAvailableWordHints, availableCategoryHints: newAvailableCategoryHints });
-    setShowHintPurchaseModal(false);
+    setShowGetHintsModal(false);
   }, [availableWordHints, availableCategoryHints, saveStateToStorage]);
 
   const handleSubmit = useCallback(() => {
@@ -283,7 +283,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, streak
       case GameState.LOADING:
         return <LoadingSpinner text={mode === 'daily' ? "Loading today's puzzle..." : "Generating new puzzle..."} />;
       case GameState.ERROR:
-        return <ErrorDisplay onRetry={loadGame} message="Could not fetch a puzzle from Gemini." />;
+        return <ErrorDisplay onRetry={loadGame} message={errorMessage} />;
       case GameState.PLAYING:
       case GameState.WON:
       case GameState.LOST:
@@ -293,19 +293,10 @@ export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, streak
 
         return (
           <>
-            {showHintOptionsPopover && (
-                <HintOptionsPopover 
-                    wordHintsLeft={availableWordHints}
-                    categoryHintsLeft={availableCategoryHints}
-                    onGetHint={handleGetHint}
-                    onClose={() => setShowHintOptionsPopover(false)}
-                    isGettingHint={isGettingHint}
-                />
-            )}
-            {showHintPurchaseModal && (
-                <HintPurchaseModal 
+            {showGetHintsModal && (
+                <GetHintsModal 
                     onPurchaseSuccess={handlePurchaseSuccess}
-                    onCancel={() => setShowHintPurchaseModal(false)}
+                    onCancel={() => setShowGetHintsModal(false)}
                 />
             )}
             <div className="p-4 space-y-2">
@@ -343,10 +334,10 @@ export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, streak
                     onShuffle={handleShuffle} 
                     onDeselect={() => setSelectedWords([])} 
                     onSubmit={handleSubmit} 
-                    onShowHintOptions={() => setShowHintOptionsPopover(true)} 
+                    onGetHint={handleGetHint}
                     canSubmit={selectedWords.length === 4}
                     isGettingHint={isGettingHint}
-                    totalHints={availableWordHints + availableCategoryHints}
+                    hintsLeft={availableWordHints + availableCategoryHints}
                 />
               </>
             ) : (
@@ -379,7 +370,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({ mode, user, streak
             mistakes={mode === 'daily' ? mistakes : undefined}
             time={mode === 'daily' ? time : undefined}
             onHomeClick={onGoHome}
-            streak={streak}
+            onHowToPlayClick={onHowToPlay}
         />
         <main className="flex-grow flex flex-col justify-start">
             {renderContent()}

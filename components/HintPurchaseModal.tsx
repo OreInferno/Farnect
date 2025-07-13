@@ -4,16 +4,16 @@ import { HINT_BUNDLE_WORD_COUNT, HINT_BUNDLE_CATEGORY_COUNT, HINT_BUNDLE_COST } 
 import { hintPayerContractAddress, hintPayerContractAbi, usdcContractAddress, usdcContractAbi } from '../contracts.ts';
 import { LoadingSpinner } from './common.tsx';
 import { parseUnits, formatUnits } from 'viem';
-import { injected } from 'wagmi/connectors'
+import { injected } from '@wagmi/connectors';
 
-interface HintPurchaseModalProps {
+interface GetHintsModalProps {
     onPurchaseSuccess: () => void;
     onCancel: () => void;
 }
 
 type PurchaseStep = 'idle' | 'connecting' | 'checking_allowance' | 'approving' | 'approved' | 'purchasing' | 'success' | 'error';
 
-const HintPurchaseModal: React.FC<HintPurchaseModalProps> = ({ onPurchaseSuccess, onCancel }) => {
+const GetHintsModal: React.FC<GetHintsModalProps> = ({ onPurchaseSuccess, onCancel }) => {
     const { address, isConnected, chain } = useAccount();
     const { connect } = useConnect();
     const { disconnect } = useDisconnect();
@@ -29,7 +29,7 @@ const HintPurchaseModal: React.FC<HintPurchaseModalProps> = ({ onPurchaseSuccess
         abi: usdcContractAbi,
         functionName: 'allowance',
         args: [address!, hintPayerContractAddress],
-        query: { enabled: isConnected },
+        query: { enabled: isConnected && !!address },
     });
     
     const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
@@ -60,11 +60,18 @@ const HintPurchaseModal: React.FC<HintPurchaseModalProps> = ({ onPurchaseSuccess
 
     const handlePurchase = async () => {
         setError(null);
+
+        if (!address || !chain) {
+            setError('Please connect your wallet.');
+            setStep('error');
+            return;
+        }
+
         setStep('checking_allowance');
         
         await refetchAllowance();
 
-        if (allowance !== undefined && allowance < hintPrice) {
+        if (allowance !== undefined && (allowance as bigint) < hintPrice) {
             setStep('approving');
             try {
                 await writeContractAsync({
@@ -72,6 +79,8 @@ const HintPurchaseModal: React.FC<HintPurchaseModalProps> = ({ onPurchaseSuccess
                     abi: usdcContractAbi,
                     functionName: 'approve',
                     args: [hintPayerContractAddress, hintPrice],
+                    account: address,
+                    chain: chain,
                 });
             } catch (e) { /* error is handled by useEffect */ }
         } else {
@@ -82,6 +91,11 @@ const HintPurchaseModal: React.FC<HintPurchaseModalProps> = ({ onPurchaseSuccess
     useEffect(() => {
         if(step === 'approved') {
             const purchase = async () => {
+                if (!address || !chain) {
+                    setError('Wallet not connected properly.');
+                    setStep('error');
+                    return;
+                }
                 setStep('purchasing');
                 try {
                      await writeContractAsync({
@@ -89,12 +103,14 @@ const HintPurchaseModal: React.FC<HintPurchaseModalProps> = ({ onPurchaseSuccess
                         abi: hintPayerContractAbi,
                         functionName: 'payForHints',
                         args: [],
+                        account: address,
+                        chain: chain,
                     });
                 } catch(e) { /* error is handled by useEffect */ }
             }
             purchase();
         }
-    }, [step, writeContractAsync]);
+    }, [step, writeContractAsync, address, chain]);
 
     const renderContent = () => {
         if (!isConnected) {
@@ -138,9 +154,12 @@ const HintPurchaseModal: React.FC<HintPurchaseModalProps> = ({ onPurchaseSuccess
             default:
                 return (
                     <>
-                        <h2 className="text-2xl font-bold mb-3">Out of Hints?</h2>
+                        <h2 className="text-2xl font-bold mb-3">Get More Hints</h2>
                         <p className="text-gray-300 mb-2">
-                            Get <span className="font-bold text-white">{HINT_BUNDLE_WORD_COUNT} Word Hints</span> and <span className="font-bold text-white">{HINT_BUNDLE_CATEGORY_COUNT} Category Hint</span> for <span className="font-bold text-white">{HINT_BUNDLE_COST} USDC</span> on Base.
+                           Purchase a hint bundle for <span className="font-bold text-white">{HINT_BUNDLE_COST} USDC</span> on Base.
+                        </p>
+                        <p className="font-semibold text-gray-200 mb-4">
+                            Includes: <span className="font-bold text-white">{HINT_BUNDLE_WORD_COUNT} Word Hints</span> & <span className="font-bold text-white">{HINT_BUNDLE_CATEGORY_COUNT} Category Hint</span>
                         </p>
                         <p className="text-xs text-gray-500 mb-6">
                             Connected to {chain?.name} as {address?.slice(0, 6)}...{address?.slice(-4)}
@@ -178,4 +197,4 @@ const HintPurchaseModal: React.FC<HintPurchaseModalProps> = ({ onPurchaseSuccess
     );
 };
 
-export default HintPurchaseModal;
+export default GetHintsModal;

@@ -1,10 +1,22 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { PuzzleData, WordHint } from '../types.ts';
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable is not set");
+let ai: GoogleGenAI | null = null;
+
+try {
+  if (process.env.API_KEY) {
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  }
+} catch (e) {
+  console.error("Failed to initialize GoogleGenAI", e);
 }
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+const getAiClient = (): GoogleGenAI => {
+    if (!ai) {
+        throw new Error("Gemini API key is not configured. Please set the API_KEY environment variable in your deployment settings.");
+    }
+    return ai;
+}
 
 const responseSchema = {
   type: Type.ARRAY,
@@ -29,7 +41,8 @@ const generatePuzzleWithRetry = async (seed: string, attempt = 1): Promise<Puzzl
     if (attempt > 3) {
         throw new Error("Failed to generate a valid puzzle after multiple attempts.");
     }
-    const response = await ai.models.generateContent({
+    const client = getAiClient();
+    const response = await client.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Generate a 'Connections' style puzzle based on this seed: ${seed}. Create four highly distinct categories, each with four unique, single-word answers. The categories should have varying levels of difficulty. Do not use the same word in multiple categories. The first category should be the easiest, and the last the hardest.`,
       config: {
@@ -63,6 +76,8 @@ export const generateNewPuzzle = async (seed: string): Promise<PuzzleData[]> => 
     return await generatePuzzleWithRetry(seed);
   } catch (error) {
     console.error("Error generating new puzzle:", error);
+    // Re-throw to be caught by the UI component
+    if (error instanceof Error) throw error;
     throw new Error("Failed to generate a new puzzle. Please try again.");
   }
 };
@@ -73,7 +88,8 @@ export const getWordHint = async (unsolvedGroups: {category: string, words: stri
     const userPrompt = `Here are the remaining unsolved categories and their words: ${JSON.stringify(unsolvedGroups.map(g => g.words))}. Pick one word from any of these groups and return only that word.`;
 
     try {
-        const response = await ai.models.generateContent({
+        const client = getAiClient();
+        const response = await client.models.generateContent({
             model: "gemini-2.5-flash",
             contents: userPrompt,
             config: {
@@ -96,6 +112,7 @@ export const getWordHint = async (unsolvedGroups: {category: string, words: stri
 
     } catch(e) {
         console.error("Error getting word hint from Gemini:", e);
+        if (e instanceof Error) throw e;
         throw new Error("Could not get a word hint at this time.");
     }
 };
@@ -106,7 +123,8 @@ export const getCategoryHint = async (unsolvedGroups: {category: string, words: 
     const userPrompt = `Here are the remaining unsolved categories: ${JSON.stringify(unsolvedGroups.map(g => g.category))}. Pick one category name from this list and return only that category name.`;
     
     try {
-        const response = await ai.models.generateContent({
+        const client = getAiClient();
+        const response = await client.models.generateContent({
             model: "gemini-2.5-flash",
             contents: userPrompt,
             config: {
@@ -126,6 +144,7 @@ export const getCategoryHint = async (unsolvedGroups: {category: string, words: 
 
     } catch(e) {
         console.error("Error getting category hint from Gemini:", e);
+        if (e instanceof Error) throw e;
         throw new Error("Could not get a category hint at this time.");
     }
 };

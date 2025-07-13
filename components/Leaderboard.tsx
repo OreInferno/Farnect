@@ -6,9 +6,10 @@ import { Header } from './Header.tsx';
 
 interface LeaderboardProps {
     onGoHome: () => void;
+    onHowToPlay: () => void;
 }
 
-const Leaderboard: React.FC<LeaderboardProps> = ({ onGoHome }) => {
+const Leaderboard: React.FC<LeaderboardProps> = ({ onGoHome, onHowToPlay }) => {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +35,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onGoHome }) => {
   if (error) {
     return (
         <>
-            <Header title="Leaderboard" onHomeClick={onGoHome} />
+            <Header title="Leaderboard" onHomeClick={onGoHome} onHowToPlayClick={onHowToPlay} />
             <p className="text-center text-red-400 p-8">{error}</p>
         </>
     );
@@ -42,7 +43,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onGoHome }) => {
 
   return (
     <>
-      <Header title="Leaderboard" subtitle="Today's Top Scores" onHomeClick={onGoHome} />
+      <Header title="Leaderboard" subtitle="Today's Top Scores" onHomeClick={onGoHome} onHowToPlayClick={onHowToPlay} />
       <div className="p-4 md:p-6 text-white">
         <div className="bg-gray-800 rounded-lg shadow-md">
             {isLoading ? (

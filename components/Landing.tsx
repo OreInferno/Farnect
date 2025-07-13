@@ -4,6 +4,7 @@ interface LandingPageProps {
   onPlayDaily: () => void;
   onPlayPractice: () => void;
   onViewLeaderboard: () => void;
+  onHowToPlay: () => void;
   onSignIn: () => void;
   streak: number;
   showStreakAnimation: boolean;
@@ -15,7 +16,7 @@ const FlameIcon = () => (
     </svg>
 );
 
-const LandingPage: React.FC<LandingPageProps> = ({ onPlayDaily, onPlayPractice, onViewLeaderboard, onSignIn, streak, showStreakAnimation }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onPlayDaily, onPlayPractice, onViewLeaderboard, onHowToPlay, streak, showStreakAnimation }) => {
   const streakRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -63,6 +64,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onPlayDaily, onPlayPractice, 
           >
             View Leaderboard
           </button>
+        </div>
+
+        <div className="mt-8">
+             <button
+                onClick={onHowToPlay}
+                className="text-gray-400 font-semibold hover:text-white transition-colors"
+            >
+                How to Play
+            </button>
         </div>
 
         <footer className="text-xs text-gray-600 mt-12">

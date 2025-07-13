@@ -5,8 +5,8 @@ interface HeaderProps {
   time?: number; // in seconds
   title: string;
   subtitle?: string;
-  streak?: number;
   onHomeClick?: () => void;
+  onHowToPlayClick?: () => void;
 }
 
 const formatTime = (seconds: number) => {
@@ -21,18 +21,18 @@ const HomeIcon = () => (
     </svg>
 );
 
-const FlameIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-6 h-6 text-orange-500">
-        <path d="M10.88,2.1a1,1,0,0,0-1.76,0L6,6.43A5.45,5.45,0,0,0,6,13.6,5.19,5.19,0,0,0,10,16.26,5.19,5.19,0,0,0,14,13.6a5.45,5.45,0,0,0,0-7.17Z" />
+const HelpIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
 );
 
 
-export const Header: React.FC<HeaderProps> = ({ mistakes, time, title, subtitle, streak, onHomeClick }) => {
+export const Header: React.FC<HeaderProps> = ({ mistakes, time, title, subtitle, onHomeClick, onHowToPlayClick }) => {
   return (
     <header className="text-center py-4 px-4 relative">
         {onHomeClick && (
-            <button onClick={onHomeClick} className="absolute top-4 left-4 text-gray-400 hover:text-white transition-colors">
+            <button onClick={onHomeClick} className="absolute top-1/2 -translate-y-1/2 left-4 text-gray-400 hover:text-white transition-colors" aria-label="Go Home">
                 <HomeIcon />
             </button>
         )}
@@ -55,11 +55,10 @@ export const Header: React.FC<HeaderProps> = ({ mistakes, time, title, subtitle,
         </div>
       )}
 
-      {streak !== undefined && streak > 0 && (
-          <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-gray-800 px-3 py-1.5 rounded-full">
-              <FlameIcon />
-              <span className="font-bold text-white">{streak}</span>
-          </div>
+      {onHowToPlayClick && (
+         <button onClick={onHowToPlayClick} className="absolute top-1/2 -translate-y-1/2 right-4 text-gray-400 hover:text-white transition-colors" aria-label="How to Play">
+             <HelpIcon />
+         </button>
       )}
     </header>
   );
