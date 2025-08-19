@@ -1,5 +1,5 @@
 
-import { PuzzleData, WordHint } from '../types.ts';
+import { PuzzleData, WordHint } from '../types';
 
 const callApi = async <T>(endpoint: string, body: object): Promise<T> => {
     const response = await fetch(endpoint, {
@@ -47,3 +47,24 @@ export const getCategoryHint = async (unsolvedGroups: {category: string, words: 
         throw new Error("Could not get a category hint at this time.");
     }
 };
+
+export async function callGemini(prompt: string) {
+  try {
+    const response = await fetch("/api/gemini", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to call Gemini API");
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error(err);
+    return { error: "Something went wrong" };
+  }
+}
+

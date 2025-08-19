@@ -2,12 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient } from '@tanstack/query-core';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { config } from './wagmi-config.ts';
-import LandingPage from './components/Landing.tsx';
-import { GameContainer } from './components/GameContainer.tsx';
-import Leaderboard from './components/Leaderboard.tsx';
-import HowToPlayModal from './components/HowToPlayModal.tsx';
-import './index.css';
+import { config } from './wagmi-config';
+import LandingPage from './components/Landing';
+import { GameContainer } from './components/GameContainer';
+import Leaderboard from './components/Leaderboard';
+import HowToPlayModal from './components/HowToPlayModal';
+import '@/index.css';
+
+// ✅ Added Gemini service import
+import { callGemini } from './services/geminiService';
 
 const queryClient = new QueryClient();
 
@@ -26,16 +29,18 @@ const AppContent: React.FC = () => {
   const [practiceKey, setPracticeKey] = useState(1);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
+  // ✅ Added Gemini test output (optional debug)
+  const [geminiOutput, setGeminiOutput] = useState("");
+
   useEffect(() => {
-    // Check if it's the user's first time visiting
     try {
-        const hasVisited = localStorage.getItem('farnect_hasVisited');
-        if (!hasVisited) {
-            setShowHowToPlay(true);
-            localStorage.setItem('farnect_hasVisited', 'true');
-        }
-    } catch(e) { console.error("Could not access localStorage for first visit check", e); }
-    
+      const hasVisited = localStorage.getItem('farnect_hasVisited');
+      if (!hasVisited) {
+        setShowHowToPlay(true);
+        localStorage.setItem('farnect_hasVisited', 'true');
+      }
+    } catch(e) { console.error("Could not access localStorage", e); }
+
     setUser(MOCK_USER);
 
     try {
@@ -78,54 +83,37 @@ const AppContent: React.FC = () => {
   
   const handleGoHome = () => setView('landing');
   const handleToggleHowToPlay = () => setShowHowToPlay(s => !s);
+  const handlePracticeAgain = () => { setPracticeKey(k => k + 1); setView('practice'); };
+  const handlePlayPractice = () => { setPracticeKey(k => k + 1); setView('practice'); };
 
-  const handlePracticeAgain = () => {
-      setPracticeKey(key => key + 1);
-      setView('practice');
-  };
-
-  const handlePlayPractice = () => {
-      setPracticeKey(key => key + 1);
-      setView('practice');
-  };
+  // ✅ Function to test Gemini
+  async function handleGeminiTest() {
+    try {
+      const data = await callGemini("Hello Gemini securely!");
+      setGeminiOutput(JSON.stringify(data, null, 2));
+    } catch (err: any) {
+      setGeminiOutput(err.message);
+    }
+  }
 
   const renderView = () => {
     switch (view) {
       case 'daily':
-        return <GameContainer 
-                    key="daily"
-                    mode="daily" 
-                    user={user} 
-                    onGoHome={handleGoHome} 
-                    onDailyWin={handleDailyWin}
-                    onPracticeAgain={handlePracticeAgain} // Prop not used in daily mode but required
-                    onViewLeaderboard={() => setView('leaderboard')}
-                    onHowToPlay={handleToggleHowToPlay}
-                />;
+        return <GameContainer key="daily" mode="daily" user={user} onGoHome={handleGoHome} onDailyWin={handleDailyWin}
+                              onPracticeAgain={handlePracticeAgain} onViewLeaderboard={() => setView('leaderboard')}
+                              onHowToPlay={handleToggleHowToPlay} />;
       case 'practice':
-        return <GameContainer 
-                    key={practiceKey}
-                    mode="practice" 
-                    user={user}
-                    onGoHome={handleGoHome}
-                    onDailyWin={() => {}} // No streak for practice
-                    onPracticeAgain={handlePracticeAgain}
-                    onViewLeaderboard={() => {}} // No leaderboard from practice result
-                    onHowToPlay={handleToggleHowToPlay}
-                />;
+        return <GameContainer key={practiceKey} mode="practice" user={user} onGoHome={handleGoHome}
+                              onDailyWin={() => {}} onPracticeAgain={handlePracticeAgain}
+                              onViewLeaderboard={() => {}} onHowToPlay={handleToggleHowToPlay} />;
       case 'leaderboard':
         return <Leaderboard onGoHome={handleGoHome} onHowToPlay={handleToggleHowToPlay} />;
       case 'landing':
       default:
-        return <LandingPage 
-                    onPlayDaily={() => setView('daily')}
-                    onPlayPractice={handlePlayPractice}
-                    onViewLeaderboard={() => setView('leaderboard')}
-                    onSignIn={() => setUser(MOCK_USER)}
-                    streak={streak}
-                    showStreakAnimation={showStreakAnimation}
-                    onHowToPlay={handleToggleHowToPlay}
-                />;
+        return <LandingPage onPlayDaily={() => setView('daily')} onPlayPractice={handlePlayPractice}
+                            onViewLeaderboard={() => setView('leaderboard')} onSignIn={() => setUser(MOCK_USER)}
+                            streak={streak} showStreakAnimation={showStreakAnimation}
+                            onHowToPlay={handleToggleHowToPlay} />;
     }
   };
 
@@ -133,6 +121,16 @@ const AppContent: React.FC = () => {
     <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col">
       {showHowToPlay && <HowToPlayModal onClose={handleToggleHowToPlay} />}
       {renderView()}
+
+      {/* ✅ Debug Gemini test UI */}
+      <div className="p-4 bg-gray-800 mt-4">
+        <button onClick={handleGeminiTest} className="rounded bg-blue-600 px-3 py-2">
+          Test Gemini
+        </button>
+        {geminiOutput && (
+          <pre className="mt-2 bg-gray-700 p-2 rounded">{geminiOutput}</pre>
+        )}
+      </div>
     </div>
   );
 };
